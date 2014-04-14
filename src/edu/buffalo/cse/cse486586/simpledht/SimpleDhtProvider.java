@@ -48,7 +48,7 @@ public class SimpleDhtProvider extends ContentProvider {
 			msgPacket.setMsgId(selection);
 			msgPacket.setMsgType(MSG_TYPE.REQUEST);
 			msgPacket.setMsgOperation(MSG_OPER.DELETE);
-			msgPacket.setMsgInitiator(node.getEmulatorPort());
+			msgPacket.setMsgInitiator(node.getDeviceID());
 			
 			/* 
 			 * If key to be inserted lies between the previous node id and the current node id 
@@ -74,8 +74,9 @@ public class SimpleDhtProvider extends ContentProvider {
 						// Forward the request if the selection is '*' and current node is the initiator
 						if(selection.compareTo("*") == 0 && node.getNodeID().compareTo(node.getNextNodeID()) != 0)
 						{
-							target = node.getNextNodePort();							
-							MessagePacket.sendMessage(target, msgPacket);					
+							target = node.getNextDeviceID();							
+							MessagePacket.sendMessage(target, msgPacket);
+							isProcessComplete = false;
 						}
 						else
 							msgPacket = null;
@@ -97,16 +98,16 @@ public class SimpleDhtProvider extends ContentProvider {
 				 */
 				case NEXT:			
 				{
-					target = node.getNextNodePort();					
+					target = node.getNextDeviceID();					
 					MessagePacket.sendMessage(target, msgPacket);
-					isProcessComplete = true;
+					isProcessComplete = false;
 					break;
 				}	
 				case PREVIOUS:
 				{
-					target = node.getPrevNodePort();					
+					target = node.getPrevDeviceID();					
 					MessagePacket.sendMessage(target, msgPacket);					
-					isProcessComplete = true;
+					isProcessComplete = false;
 					break;
 				}
 				default:
@@ -162,7 +163,7 @@ public class SimpleDhtProvider extends ContentProvider {
 			MessagePacket msgPacket = new MessagePacket(keyToInsert, valueToInsert);
 			msgPacket.setMsgType(MSG_TYPE.REQUEST);
 			msgPacket.setMsgOperation(MSG_OPER.INSERT);
-			msgPacket.setMsgInitiator(node.getEmulatorPort());
+			msgPacket.setMsgInitiator(node.getDeviceID());
 			
 			/* 
 			 * If key to be inserted lies between the previous node id and the current node id 
@@ -191,16 +192,16 @@ public class SimpleDhtProvider extends ContentProvider {
 				 */
 				case NEXT:			
 				{
-					target = node.getNextNodePort();					
+					target = node.getNextDeviceID();					
 					MessagePacket.sendMessage(target, msgPacket);
-					isProcessComplete = true;
+					isProcessComplete = false;
 					break;
 				}	
 				case PREVIOUS:
 				{
-					target = node.getPrevNodePort();					
+					target = node.getPrevDeviceID();					
 					MessagePacket.sendMessage(target, msgPacket);
-					isProcessComplete = true;
+					isProcessComplete = false;
 					break;
 				}
 				default:
@@ -265,7 +266,7 @@ public class SimpleDhtProvider extends ContentProvider {
 			msgPacket.setMsgId(selection);
 			msgPacket.setMsgType(MSG_TYPE.REQUEST);
 			msgPacket.setMsgOperation(MSG_OPER.QUERY);
-			msgPacket.setMsgInitiator(node.getEmulatorPort());
+			msgPacket.setMsgInitiator(node.getDeviceID());
 			
 			/* 
 			 * If key to be inserted lies between the previous node id and the current node id 
@@ -295,8 +296,9 @@ public class SimpleDhtProvider extends ContentProvider {
 						// Forward the request if the selection is '*' and current node is the initiator
 						if(selection.compareTo("*") == 0 && node.getNodeID().compareTo(node.getNextNodeID()) != 0)
 						{
-							target = node.getNextNodePort();						
+							target = node.getNextDeviceID();						
 							MessagePacket.sendMessage(target, msgPacket);
+							isProcessComplete = false;
 						}
 						else
 							msgPacket = null;
@@ -319,16 +321,16 @@ public class SimpleDhtProvider extends ContentProvider {
 				 */
 				case NEXT:			
 				{
-					target = node.getNextNodePort();					
+					target = node.getNextDeviceID();					
 					MessagePacket.sendMessage(target, msgPacket);
-					isProcessComplete = true;
+					isProcessComplete = false;
 					break;
 				}	
 				case PREVIOUS:
 				{
-					target = node.getPrevNodePort();					
+					target = node.getPrevDeviceID();					
 					MessagePacket.sendMessage(target, msgPacket);					
-					isProcessComplete = true;
+					isProcessComplete = false;
 					break;
 				}
 				default:
@@ -342,7 +344,7 @@ public class SimpleDhtProvider extends ContentProvider {
 			{
 				// Dont return until the initiator node gets value from all the nodes
 				while(!isProcessComplete);
-				
+				//Thread.currentThread().
 				// Appending all the result cursors to form one cursor object 
 				if(!resultCursorString.isEmpty())
 					resultCursorString += MessagePacket.ROW_DELIMITER;
@@ -449,7 +451,7 @@ public class SimpleDhtProvider extends ContentProvider {
 					  {
 						  case CURRENT:
 						  {	
-							  if(msgPacket.getMsgInitiator().compareTo(node.getEmulatorPort()) != 0)
+							  if(msgPacket.getMsgInitiator().compareTo(node.getDeviceID()) != 0)
 							  {
 								  							  						
 								  Uri uri = Uri.parse("content://edu.buffalo.cse.cse486586.simpledht.provider");
@@ -459,7 +461,7 @@ public class SimpleDhtProvider extends ContentProvider {
 								  responseMsgPacket.setMsgType(MSG_TYPE.RESPONSE);
 								  responseMsgPacket.setMsgId(msgPacket.getMsgId());
 								  responseMsgPacket.setMsgOperation(msgPacket.getMsgOperation());
-								  responseMsgPacket.setMsgInitiator(node.getEmulatorPort());
+								  responseMsgPacket.setMsgInitiator(node.getDeviceID());
 								  
 								  if(msgPacket.getMsgOperation() == MSG_OPER.INSERT)
 								  {
@@ -475,10 +477,7 @@ public class SimpleDhtProvider extends ContentProvider {
 											  				(msgPacket.getMsgId().compareTo("*")==0)?"@":msgPacket.getMsgId(), null, null);
 									  responseMsgPacket.setMsgContent(MessagePacket.serializeCursor(resultCursor));
 									  if(msgPacket.getMsgId().compareTo("*") == 0)
-									  {
-										  target = node.getNextNodePort();								
-										  MessagePacket.sendMessage(target, msgPacket);
-									  }
+										  MessagePacket.sendMessage(node.getNextDeviceID(), msgPacket);									  
 									  
 								  }
 								  else if(msgPacket.getMsgOperation() == MSG_OPER.DELETE)
@@ -488,15 +487,15 @@ public class SimpleDhtProvider extends ContentProvider {
 									  responseMsgPacket.setMsgContent(String.valueOf(noRowsDeleted));
 									  if(msgPacket.getMsgId().compareTo("*") == 0)
 									  {
-										  target = node.getNextNodePort();								
+										  target = node.getNextDeviceID();								
 										  MessagePacket.sendMessage(target, msgPacket);
 									  }
 
 								  }
 								  else if(msgPacket.getMsgOperation() == MSG_OPER.NODEJOIN)
 								  {									
-									  responseMsgPacket.setMsgContent(node.getEmulatorPort() + ":::" + node.getPrevNodePort());
-									  node.setPrevNodePort(msgPacket.getMsgId());
+									  responseMsgPacket.setMsgContent(node.getDeviceID() + ":::" + node.getPrevDeviceID());
+									  node.setPrevDeviceID(msgPacket.getMsgId());
 									  node.setPrevNodeID(Node.genHash(msgPacket.getMsgId()));
 								  }
 								 
@@ -508,13 +507,13 @@ public class SimpleDhtProvider extends ContentProvider {
 						  }
 						  case NEXT:
 						  {
-							  target = node.getNextNodePort();								
+							  target = node.getNextDeviceID();								
 							  MessagePacket.sendMessage(target, msgPacket);
 							  break;
 						  }						  
 						  case PREVIOUS:
 						  {
-							  target = node.getPrevNodePort();								
+							  target = node.getPrevDeviceID();								
 							  MessagePacket.sendMessage(target, msgPacket);
 							  break;
 						  }							  						  
@@ -561,7 +560,7 @@ public class SimpleDhtProvider extends ContentProvider {
 						  			if(msgCount != 1)
 						  				resultCursorString += MessagePacket.ROW_DELIMITER;
 						  			resultCursorString += msgPacket.getMsgContent();
-						  			if(msgCount == DeviceInfo.REMOTE_PORTS.length - 1)
+						  			if(msgCount == 2)//DeviceInfo.REMOTE_PORTS.length - 1) TODO : change it back
 						  			{
 						  				msgCount = 0;
 							  			isProcessComplete = true;
@@ -577,15 +576,15 @@ public class SimpleDhtProvider extends ContentProvider {
 						  	case NODEJOIN:
 						  	{
 						  		String[] placeHolderNodes = msgPacket.getMsgContent().split(":::");
-						  		node.setNextNodePort(placeHolderNodes[0]);
+						  		node.setNextDeviceID(placeHolderNodes[0]);
 						  		node.setNextNodeID(Node.genHash(placeHolderNodes[0]));
-						  		node.setPrevNodePort(placeHolderNodes[1]);
+						  		node.setPrevDeviceID(placeHolderNodes[1]);
 						  		node.setPrevNodeID(Node.genHash(placeHolderNodes[1]));
 						  		
 						  		target = placeHolderNodes[1];
 						  		MessagePacket nodeUpdateMsg = new MessagePacket();
-						  		nodeUpdateMsg.setMsgId(node.getEmulatorPort());						  		
-						  		nodeUpdateMsg.setMsgInitiator(node.getEmulatorPort());						  		
+						  		nodeUpdateMsg.setMsgId(node.getDeviceID());						  		
+						  		nodeUpdateMsg.setMsgInitiator(node.getDeviceID());						  		
 						  		nodeUpdateMsg.setMsgType(MSG_TYPE.RESPONSE);
 						  		nodeUpdateMsg.setMsgOperation(MSG_OPER.NODEUPDATE);
 						  		MessagePacket.sendMessage(target, nodeUpdateMsg);
@@ -593,7 +592,7 @@ public class SimpleDhtProvider extends ContentProvider {
 						  	}
 						  	case NODEUPDATE:
 						  	{
-						  		node.setNextNodePort(msgPacket.getMsgId());
+						  		node.setNextDeviceID(msgPacket.getMsgId());
 						  		node.setNextNodeID(Node.genHash(msgPacket.getMsgId()));	
 						  		break;
 						  	}

@@ -7,6 +7,7 @@ import java.net.ServerSocket;
 import android.net.Uri;
 import android.os.Bundle;
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.telephony.TelephonyManager;
@@ -22,10 +23,12 @@ public class SimpleDhtActivity extends Activity {
 	SimpleDhtProvider simpleDhtProvider = null;
 	public static final String TAG = SimpleDhtActivity.class.getSimpleName();
 	
+	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
     	
-    	try {
+    	try {    		
+    		
 		        super.onCreate(savedInstanceState);
 		        setContentView(R.layout.activity_simple_dht_main);
 		        
@@ -44,7 +47,7 @@ public class SimpleDhtActivity extends Activity {
 						try {
 							Node node = Node.getInstance();
 							Cursor cursor = getContentResolver().query(uri, null, "@", null, null);
-							String result = "Node ID : " + node.getEmulatorPort();
+							String result = "Device ID : " + node.getDeviceID();
 							while(cursor.moveToNext())
 							{
 								result += "\n" + cursor.getString(0) + " : " + cursor.getString(1); 
@@ -76,9 +79,75 @@ public class SimpleDhtActivity extends Activity {
 						Node node;
 						try {
 							node = Node.getInstance();
-							tv.setText("\nNode ID : "+node.getEmulatorPort() +
-									"\nNode Prev ID : "+node.getPrevNodePort() +
-									"\nNode Next ID : "+node.getNextNodePort());
+							tv.setText("\n Device ID : "+node.getDeviceID() +
+									"\nDevice HashID : "+node.getNodeID() +
+									"\nPrev DeviceID : "+node.getPrevDeviceID() +
+									"\nNext DeviceID : "+node.getNextDeviceID());							
+									
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						
+					}
+				});
+		        
+		        findViewById(R.id.button5).setOnClickListener(new OnClickListener() {
+					
+					@Override
+					public void onClick(View v) {
+						Node node;
+						try {
+							node = Node.getInstance();
+							tv.setText("\n Inserting : "+node.getDeviceID());// +
+							ContentValues contentValue = new ContentValues();         
+							
+							if(node.getDeviceID() == "5554")
+							{
+								contentValue.put("key","52NMGXlFKbm8mywSznhdhgF4zfE6N3fB");
+								contentValue.put("value", "5duHjPVgb7PJMzJWhKdRVxgDa0hkq7US");							
+								Uri newUri =  getContentResolver().insert(uri,contentValue);
+								
+								contentValue.put("key","94BGfwN6IEgeHqkT0OquRVsptx4L1jDa");
+								contentValue.put("value", "ZjTvJgE5hC6pBE4EJm2v7Vi8FuDkbAwI");							
+								newUri =  getContentResolver().insert(uri,contentValue);
+								
+								contentValue.put("key","6yhgjBvCQNPwsPLQnqr8qrS0KXt8Vw9s");
+								contentValue.put("value", "VCTlyrB6yOfTPhFwxz58Japl5Ga1GuC0");							
+								newUri =  getContentResolver().insert(uri,contentValue);
+							}
+							if(node.getDeviceID() == "5556")
+							{
+								contentValue.put("key","83LhwdPv8W53aCWZIfWmpfRzlNIpPw5N");
+								contentValue.put("value", "Ww3DqACtPesmkNUdpeCESzeIzdlOaqEr");							
+								Uri newUri =  getContentResolver().insert(uri,contentValue);
+								
+								contentValue.put("key","4xfJqxaaPpfj6Yxci0CO1OwoVph36wHL");
+								contentValue.put("value", "VezgBZdNr8icni7qeYXZuYRthMEv22Us");							
+								newUri =  getContentResolver().insert(uri,contentValue);
+								
+								contentValue.put("key","H2JV9wwTbZKnXqYJpaz2tBC9Zt0qFOXG");
+								contentValue.put("value", "lMUcHkK6dNai1eBD6rWfJo9pa4smWgiz");							
+								newUri =  getContentResolver().insert(uri,contentValue);
+							}
+							
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						
+					}
+				});
+		        
+		        findViewById(R.id.button6).setOnClickListener(new OnClickListener() {
+					
+					@Override
+					public void onClick(View v) {
+						Node node;
+						try {
+							node = Node.getInstance();
+							  Cursor resultCursor = getContentResolver().query(uri, null,"*", null, null);
+							  tv.setText("\n Querying : "+node.getDeviceID());// +
 						} catch (Exception e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
@@ -102,18 +171,18 @@ public class SimpleDhtActivity extends Activity {
 				
 				
 				// Checking if we are the base node
-				if(emulatorPort.compareTo(DeviceInfo.BASE_PORT) == 0) 	
+				if(DeviceInfo.getDeviceName(emulatorPort).compareTo(DeviceInfo.BASE_DEVICE_ID) == 0) 	
 				{
 					
 				}				
 				else /* Form logical ring by sending a request to the Base node */
 				{
 					MessagePacket msgPacket = new MessagePacket();
-					msgPacket.setMsgId(node.getEmulatorPort());				
+					msgPacket.setMsgId(node.getDeviceID());				
 					msgPacket.setMsgType(MSG_TYPE.REQUEST);
 					msgPacket.setMsgOperation(MSG_OPER.NODEJOIN);
-					msgPacket.setMsgInitiator(node.getEmulatorPort());
-					MessagePacket.sendMessage(DeviceInfo.BASE_PORT, msgPacket);
+					msgPacket.setMsgInitiator(node.getDeviceID());
+					MessagePacket.sendMessage(DeviceInfo.BASE_DEVICE_ID, msgPacket);
 				}
 		   
 		  } catch (IOException e) {		    

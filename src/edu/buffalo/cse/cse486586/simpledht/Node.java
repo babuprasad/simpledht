@@ -14,11 +14,11 @@ import android.util.Log;
  */
 public class Node {
 	private String nodeID;
-	private String emulatorPort;
+	private String deviceID;
 	private String prevNodeID;
 	private String nextNodeID;
-	private String prevNodePort;
-	private String nextNodePort;
+	private String prevDeviceID;
+	private String nextDeviceID;
 	
 	/**
 	 * Singleton Instance as we need only one Node object per App/Device
@@ -38,18 +38,25 @@ public class Node {
 	{
 		if(nodeInstance == null)
 		{
-			try {
-				nodeInstance = new Node();
-				nodeInstance.emulatorPort = emulatorPort;				
-				nodeInstance.prevNodePort = emulatorPort;
-				nodeInstance.nextNodePort = emulatorPort;
+			try {				
+				String deviceID = DeviceInfo.getDeviceName(emulatorPort);
+				if(deviceID.compareTo("InvalidPortNo") == 0)
+					throw new Exception("Node Initailization failed -- "+deviceID);
 				
-				nodeInstance.nodeID =  genHash(emulatorPort);
-				nodeInstance.prevNodeID =  genHash(emulatorPort);
-				nodeInstance.nextNodeID =  genHash(emulatorPort);
+				nodeInstance = new Node();
+				nodeInstance.deviceID = deviceID;				
+				nodeInstance.prevDeviceID = deviceID;
+				nodeInstance.nextDeviceID = deviceID;
+								 
+				nodeInstance.nodeID =  genHash(deviceID);
+				nodeInstance.prevNodeID =  genHash(deviceID);
+				nodeInstance.nextNodeID =  genHash(deviceID);
 			} 
 			catch (NoSuchAlgorithmException e) {
-				Log.v("Node", "Node instance creation failed");
+				Log.e("Node", "Node instance creation failed : "+e.getMessage());
+				e.printStackTrace();
+			} catch (Exception e) {
+				Log.e("Node", "Node instance creation failed : "+e.getMessage());
 				e.printStackTrace();
 			}
 		}
@@ -71,6 +78,10 @@ public class Node {
 		return nodeInstance;
 	}
 
+	/********************************************************************
+	 * Node ID Helper Functions - Babu
+	 *******************************************************************/
+	
 	/**
 	 * @return the nodeID
 	 */
@@ -79,27 +90,12 @@ public class Node {
 	}
 
 	/**
-	 * 
-	 * @return Node ID as Integer
-	 */
-	public Integer getNodeIDAsInt()
-	{
-		return Integer.parseInt(nodeID);
-	}
-	
-	/**
 	 * @param nodeID the nodeID to set
 	 */
 	public void setNodeID(String nodeID) {
 		this.nodeID = nodeID;
 	}
 
-	/**
-	 * @return the emulatorPort
-	 */
-	public String getEmulatorPort() {
-		return emulatorPort;
-	}
 
 	/**
 	 * @return the prevNodeID
@@ -108,14 +104,6 @@ public class Node {
 		return prevNodeID;
 	}
 
-	/** 
-	 * @return Previous Node ID as Integer
-	 */
-	public Integer getPrevNodeIDAsInt()
-	{
-		return Integer.parseInt(prevNodeID);
-	}
-	
 	/**
 	 * @param prevNodeID the prevNodeID to set
 	 */
@@ -131,54 +119,58 @@ public class Node {
 	}
 
 	/**
-	 * 
-	 * @return Next Node ID as Integer
-	 */
-	public Integer getNextNodeIDAsInt()
-	{
-		return Integer.parseInt(nextNodeID);
-	}
-	
-	/**
-	 * @param nextNodeID the nextNodeID to set
+	 * @param nextNodeID the next node id to set
 	 */
 	public void setNextNodeID(String nextNodeID) {
 		this.nextNodeID = nextNodeID;
 	}
 	
+	
+	/********************************************************************
+	 * Device ID Helper Functions - Babu
+	 *******************************************************************/
+	
 	/**
-	 * @return the prevNodePort
+	 * @return the device id
 	 */
-	public String getPrevNodePort() {
-		return prevNodePort;
+	public String getDeviceID() {
+		return deviceID;
+	}
+	
+
+	/**
+	 * @param deviceID the emulatorPort to set
+	 */
+	public void setDeviceID(String deviceID) {
+		this.deviceID = deviceID;
+	}
+	
+	/**
+	 * @return the prevDeviceID
+	 */
+	public String getPrevDeviceID() {
+		return prevDeviceID;
 	}
 
 	/**
-	 * @param prevNodePort the prevNodePort to set
+	 * @param prevDeviceID the previous device id to set
 	 */
-	public void setPrevNodePort(String prevNodePort) {
-		this.prevNodePort = prevNodePort;
+	public void setPrevDeviceID(String prevDeviceID) {
+		this.prevDeviceID = prevDeviceID;
 	}
 
 	/**
-	 * @return the nextNodePort
+	 * @return the next Device Id
 	 */
-	public String getNextNodePort() {
-		return nextNodePort;
+	public String getNextDeviceID() {
+		return nextDeviceID;
 	}
 
 	/**
-	 * @param nextNodePort the nextNodePort to set
+	 * @param nextDeviceID the next device id to set
 	 */
-	public void setNextNodePort(String nextNodePort) {
-		this.nextNodePort = nextNodePort;
-	}
-
-	/**
-	 * @param emulatorPort the emulatorPort to set
-	 */
-	public void setEmulatorPort(String emulatorPort) {
-		this.emulatorPort = emulatorPort;
+	public void setNextDeviceID(String nextDeviceID) {
+		this.nextDeviceID = nextDeviceID;
 	}
 	
 	/**
@@ -222,13 +214,17 @@ public class Node {
 		else if(node.getNodeID().compareTo(node.getNextNodeID()) == 0 || node.getNodeID().compareTo(node.getPrevNodeID()) == 0)
 			return NODE.CURRENT;
 		else if (hashkey.compareTo(node.getNodeID()) <= 0 && hashkey.compareTo(node.getPrevNodeID()) > 0)		
-			return NODE.CURRENT;			
-		else if(hashkey.compareTo(node.getNodeID()) > 0 && node.getNextNodeID().compareTo(node.getNodeID()) > 0)
-			return NODE.NEXT;
-		else if(hashkey.compareTo(node.getPrevNodeID()) < 0 && node.getPrevNodeID().compareTo(node.getNodeID()) < 0)
-			return NODE.PREVIOUS;
-		else
 			return NODE.CURRENT;
+		else if(node.getPrevNodeID().compareTo(node.getNodeID()) > 0)
+			return NODE.CURRENT;
+//		else if (hashkey.compareTo(node.getNodeID()) > 0 && hashkey.compareTo(node.getPrevNodeID()) > 0)
+//			return NODE.CURRENT;
+		//else if (hashkey.compareTo(node.getNodeID()) > 0 && node.getNextNodeID().compareTo(node.getNodeID()) > 0)
+			//return NODE.NEXT;
+//		else if(hashkey.compareTo(node.getPrevNodeID()) < 0 && node.getPrevNodeID().compareTo(node.getNodeID()) < 0)
+//			return NODE.PREVIOUS;
+		else
+			return NODE.NEXT;
 	}
     
 	/**

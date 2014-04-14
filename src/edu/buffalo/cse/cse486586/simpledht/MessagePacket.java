@@ -209,7 +209,8 @@ public class MessagePacket implements Serializable{
 	
 	  	// Attach Unique ID to the messageMSG_DELIMITER
 		String msgToBeSent = MessagePacket.serializeMessage(msgPacket);
-	  	new ClientTask().executeOnExecutor(AsyncTask.SERIAL_EXECUTOR, target, msgToBeSent);
+		String targetPort = DeviceInfo.getDevicePortNo(target);
+	  	new ClientTask().executeOnExecutor(AsyncTask.SERIAL_EXECUTOR, targetPort, msgToBeSent);
 	      		
 	}
 }
