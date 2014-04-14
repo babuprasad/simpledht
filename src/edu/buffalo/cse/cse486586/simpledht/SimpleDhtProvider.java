@@ -569,16 +569,8 @@ public class SimpleDhtProvider extends ContentProvider {
 						  	}
 						  	case DELETE:
 						  	{
-//						  		if(msgPacket.getMsgId().compareTo("*") == 0)
-//						  		{
-//						  			resultDeletedRows = Integer.parseInt(msgPacket.getMsgContent());
-//						  			isProcessComplete = true;
-//						  		}
-//						  		else
-//						  		{
-						  			resultDeletedRows = Integer.parseInt(msgPacket.getMsgContent());
-						  			isProcessComplete = true;
-						  		//}							  			
+					  			resultDeletedRows = Integer.parseInt(msgPacket.getMsgContent());
+					  			isProcessComplete = true;							  			
 						  		break;
 						  	}
 						  	case QUERY:
