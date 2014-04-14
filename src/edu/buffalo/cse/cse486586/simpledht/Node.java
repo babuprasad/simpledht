@@ -3,7 +3,6 @@ package edu.buffalo.cse.cse486586.simpledht;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Formatter;
-
 import android.util.Log;
 
 /**
@@ -173,6 +172,7 @@ public class Node {
 		this.nextDeviceID = nextDeviceID;
 	}
 	
+	
 	/**
      * Generate Hash function using SHA1 for key in DHT implementation
      * @param input - key
@@ -204,27 +204,50 @@ public class Node {
 	{
 		Node node = Node.getInstance();
 		String hashkey = Node.genHash(key);
+		Log.i("NodeLookup", "key : "+key);
+		Log.i("NodeLookup", "Hash key : "+hashkey);
+		
 		/* 
 		 * If wildcard is used then return current node else check whether
 		 * key to be inserted lies between the previous node id and the current node id 
 		 * or greater than the current node
 		 */
+		//Log.i("NodeLookup", "Already visited : "+node.alreadyVisited.keySet());
 		if(key.compareTo("*") == 0 || key.compareTo("@") == 0)
+		{
+			Log.i("NodeLookup", "key is * or @");
 			return NODE.CURRENT;
+		}
 		else if(node.getNodeID().compareTo(node.getNextNodeID()) == 0 || node.getNodeID().compareTo(node.getPrevNodeID()) == 0)
+		{
+			Log.i("NodeLookup", "Key belongs to current node as node and prev/next are same");
 			return NODE.CURRENT;
+		}
+		
 		else if (hashkey.compareTo(node.getNodeID()) <= 0 && hashkey.compareTo(node.getPrevNodeID()) > 0)		
+		{
+			Log.i("NodeLookup", "key belongs to current node as key is lesser than node and greater than prev nodeid");
 			return NODE.CURRENT;
-		else if(node.getPrevNodeID().compareTo(node.getNodeID()) > 0)
+		}
+
+		else if(node.getPrevNodeID().compareTo(node.getNodeID()) > 0 && hashkey.compareTo(node.getPrevNodeID()) > 0
+				&& hashkey.compareTo(node.getNodeID()) > 0)
+		{
+			Log.e("NodeLookup", "CORNER CASE -- Key belongs to current node as node.prev is greater than node id");
 			return NODE.CURRENT;
-//		else if (hashkey.compareTo(node.getNodeID()) > 0 && hashkey.compareTo(node.getPrevNodeID()) > 0)
-//			return NODE.CURRENT;
-		//else if (hashkey.compareTo(node.getNodeID()) > 0 && node.getNextNodeID().compareTo(node.getNodeID()) > 0)
-			//return NODE.NEXT;
-//		else if(hashkey.compareTo(node.getPrevNodeID()) < 0 && node.getPrevNodeID().compareTo(node.getNodeID()) < 0)
-//			return NODE.PREVIOUS;
+		}
+		else if(node.getPrevNodeID().compareTo(node.getNodeID()) > 0 && hashkey.compareTo(node.getPrevNodeID()) < 0
+				&& hashkey.compareTo(node.getNodeID()) < 0)
+		{
+			Log.e("NodeLookup", "CORNER CASE -- Key belongs to current node as node.prev is greater than node id");
+			return NODE.CURRENT;
+		}
+		
 		else
+		{
+			Log.e("NodeLookup", "key goes to next node as none of the condition is met");
 			return NODE.NEXT;
+		}
 	}
     
 	/**

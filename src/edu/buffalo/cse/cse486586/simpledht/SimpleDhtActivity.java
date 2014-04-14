@@ -2,8 +2,6 @@ package edu.buffalo.cse.cse486586.simpledht;
 
 
 import java.io.IOException;
-import java.net.ServerSocket;
-
 import android.net.Uri;
 import android.os.Bundle;
 import android.app.Activity;
@@ -43,7 +41,7 @@ public class SimpleDhtActivity extends Activity {
 					
 					@Override
 					public void onClick(View v) {
-						// TODO Auto-generated method stub
+						
 						try {
 							Node node = Node.getInstance();
 							Cursor cursor = getContentResolver().query(uri, null, "@", null, null);
@@ -55,7 +53,6 @@ public class SimpleDhtActivity extends Activity {
 							tv.setText(result);
 								
 						} catch (Exception e) {
-							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
 						
@@ -85,7 +82,6 @@ public class SimpleDhtActivity extends Activity {
 									"\nNext DeviceID : "+node.getNextDeviceID());							
 									
 						} catch (Exception e) {
-							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
 						
@@ -106,33 +102,32 @@ public class SimpleDhtActivity extends Activity {
 							{
 								contentValue.put("key","52NMGXlFKbm8mywSznhdhgF4zfE6N3fB");
 								contentValue.put("value", "5duHjPVgb7PJMzJWhKdRVxgDa0hkq7US");							
-								Uri newUri =  getContentResolver().insert(uri,contentValue);
+								getContentResolver().insert(uri,contentValue);
 								
 								contentValue.put("key","94BGfwN6IEgeHqkT0OquRVsptx4L1jDa");
 								contentValue.put("value", "ZjTvJgE5hC6pBE4EJm2v7Vi8FuDkbAwI");							
-								newUri =  getContentResolver().insert(uri,contentValue);
+								getContentResolver().insert(uri,contentValue);
 								
 								contentValue.put("key","6yhgjBvCQNPwsPLQnqr8qrS0KXt8Vw9s");
 								contentValue.put("value", "VCTlyrB6yOfTPhFwxz58Japl5Ga1GuC0");							
-								newUri =  getContentResolver().insert(uri,contentValue);
+								getContentResolver().insert(uri,contentValue);
 							}
 							if(node.getDeviceID() == "5556")
 							{
 								contentValue.put("key","83LhwdPv8W53aCWZIfWmpfRzlNIpPw5N");
 								contentValue.put("value", "Ww3DqACtPesmkNUdpeCESzeIzdlOaqEr");							
-								Uri newUri =  getContentResolver().insert(uri,contentValue);
+								getContentResolver().insert(uri,contentValue);
 								
 								contentValue.put("key","4xfJqxaaPpfj6Yxci0CO1OwoVph36wHL");
 								contentValue.put("value", "VezgBZdNr8icni7qeYXZuYRthMEv22Us");							
-								newUri =  getContentResolver().insert(uri,contentValue);
+								getContentResolver().insert(uri,contentValue);
 								
 								contentValue.put("key","H2JV9wwTbZKnXqYJpaz2tBC9Zt0qFOXG");
 								contentValue.put("value", "lMUcHkK6dNai1eBD6rWfJo9pa4smWgiz");							
-								newUri =  getContentResolver().insert(uri,contentValue);
+								getContentResolver().insert(uri,contentValue);
 							}
 							
 						} catch (Exception e) {
-							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
 						
@@ -146,10 +141,9 @@ public class SimpleDhtActivity extends Activity {
 						Node node;
 						try {
 							node = Node.getInstance();
-							  Cursor resultCursor = getContentResolver().query(uri, null,"*", null, null);
+							  getContentResolver().query(uri, null,"*", null, null);
 							  tv.setText("\n Querying : "+node.getDeviceID());// +
 						} catch (Exception e) {
-							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
 						
@@ -160,20 +154,11 @@ public class SimpleDhtActivity extends Activity {
 				Node.initNodeInstance(emulatorPort);       
 				Node node = Node.getInstance();				
 				
-				/*
-		       	* Create a server socket as well as a thread (AsyncTask) that listens on the server
-		       	* port. - Babu
-		       	* */								  
-				//ServerSocket serverSocket = new ServerSocket(DeviceInfo.SERVER_PORT);
-				//simpleDhtProvider = new SimpleDhtProvider();	
-				//AsyncTask<ServerSocket, String, Void> serverTask = simpleDhtProvider.getServerTask();
-				//serverTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, serverSocket);
-				
-				
 				// Checking if we are the base node
 				if(DeviceInfo.getDeviceName(emulatorPort).compareTo(DeviceInfo.BASE_DEVICE_ID) == 0) 	
 				{
-					
+					// In case of Base node don't do anything. Base node is used to listen for NODEJOIN requests 
+					// and serve them accordingly.
 				}				
 				else /* Form logical ring by sending a request to the Base node */
 				{

@@ -194,8 +194,10 @@ public class MessagePacket implements Serializable{
 		for (String row : rows) 
 		{
 			String[] columns = row.split(COL_DELIMITER);
-			cursor.addRow(columns);
+			if(columns.length > 1 && !columns[0].isEmpty() && !columns[1].isEmpty())
+				cursor.addRow(columns);
 		}
+		cursor.close();
 		return cursor;		
 	}
 	

@@ -1,6 +1,5 @@
 package edu.buffalo.cse.cse486586.simpledht;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
@@ -74,8 +73,8 @@ public class SimpleDhtProvider extends ContentProvider {
 						// Forward the request if the selection is '*' and current node is the initiator
 						if(selection.compareTo("*") == 0 && node.getNodeID().compareTo(node.getNextNodeID()) != 0)
 						{
-							target = node.getNextDeviceID();							
-							MessagePacket.sendMessage(target, msgPacket);
+							msgPacket.setMsgContent(String.valueOf(retVal));
+							MessagePacket.sendMessage(node.getNextDeviceID(), msgPacket);
 							isProcessComplete = false;
 						}
 						else
@@ -139,7 +138,6 @@ public class SimpleDhtProvider extends ContentProvider {
 
     @Override
     public String getType(Uri uri) {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -179,7 +177,9 @@ public class SimpleDhtProvider extends ContentProvider {
 				{
 					Log.v(TAG,"Inserting key/value pair...");
 					Log.v(TAG,"key : "+keyToInsert);
+					Log.v(TAG,"Hash key : "+Node.genHash(keyToInsert));
 					Log.v(TAG,"value : "+valueToInsert);
+					
 					Editor editor = sharedPreference.edit();
 					editor.putString(keyToInsert, valueToInsert);
 					editor.commit();					
@@ -290,14 +290,15 @@ public class SimpleDhtProvider extends ContentProvider {
 						for (Entry<String, ?> entry : sharedPreference.getAll().entrySet()) {
 							cursor.addRow(new String[]{entry.getKey().toString(), entry.getValue().toString()});
 						}
-						
-						Log.v(TAG,"All rows added to cursor");
-						
+						cursor.close();
+						//Log.v(TAG,"All rows added to cursor - "+sharedPreference.getAll().size());
+						//Log.i(TAG, "Query result : "+MessagePacket.serializeCursor(cursor));
 						// Forward the request if the selection is '*' and current node is the initiator
 						if(selection.compareTo("*") == 0 && node.getNodeID().compareTo(node.getNextNodeID()) != 0)
 						{
-							target = node.getNextDeviceID();						
-							MessagePacket.sendMessage(target, msgPacket);
+							msgPacket.setMsgContent(node.getDeviceID());
+							MessagePacket.sendMessage(node.getNextDeviceID(), msgPacket);
+							Log.i(TAG, "QUERY ALL : Sending to next device :"+msgPacket.getMsgContent());
 							isProcessComplete = false;
 						}
 						else
@@ -307,6 +308,7 @@ public class SimpleDhtProvider extends ContentProvider {
 					{
 						String value = sharedPreference.getString(selection, "null");
 						cursor.addRow(new String[]{selection,value});
+						cursor.close();
 						isProcessComplete = true;
 						if(value.equals("null"))        
 							Log.w(TAG, "Key does not exist");
@@ -354,6 +356,7 @@ public class SimpleDhtProvider extends ContentProvider {
 				if(!resultCursorString.isEmpty())
 					cursor = MessagePacket.deSerializeCursor(resultCursorString);
 				resultCursorString = "";
+				
 			}			
 			Log.v(TAG,"query content provider - end ");
 			return cursor;
@@ -386,17 +389,14 @@ public class SimpleDhtProvider extends ContentProvider {
 	   * @author Babu
 	   */
 	   public class ServerTask extends AsyncTask<ServerSocket, String, Void> {
-		   int msgCount = 0;
+		   int msgCount = 0, trackerLength = 0;
+		   boolean trackerArrived = false;
 	  	 
 	      @Override
 	      protected Void doInBackground(ServerSocket... sockets) {
 	          ServerSocket serverSocket = sockets[0];
-	  		String msgRecieved = "";
+	  		  String msgRecieved = "";
 	                      
-	          /*
-	           * TODO: Fill in your server code that receives messages and passes them
-	           * to onProgressUpdate().
-	           */
 	  		
 	  		/*
 	           * Code to accept the client socket connection and read message from the socket. Message read  
@@ -405,18 +405,20 @@ public class SimpleDhtProvider extends ContentProvider {
 	           */  
 	          try {            	
 	  			while (true) {   // Infinite while loop in order to enable continuous two-way communication 
-	  	            // Default Buffer Size is assigned as 128 as PA1 specifications
-	  	            byte buffer[] = new byte[128];
+	  	            // Default Buffer Size is assigned as 4098 to accommodate Query * operation
+	  	            byte buffer[] = new byte[4098];
 	  				Socket socket = serverSocket.accept();					
 	  				InputStream in = socket.getInputStream();
 	  				if (in.read(buffer) != -1) {
 	  					msgRecieved = new String(buffer);
-	  					Log.d(TAG, "Message Recieved - " + msgRecieved); 
+	  					msgRecieved = msgRecieved.trim();
+	  					Log.d(TAG, "Message Recieved - " + msgRecieved);
+	  					//Log.d(TAG, "Size of Message Rcvd : "+msgRecieved.length());
 	  				}
 	  				else
 	  					Log.e(TAG, "Unable to read buffer data from Socket");
 	  				in.close();
-	  				msgRecieved = msgRecieved.trim();
+	  				
 
 	  				// Send to publish progress for further message processing
 	  				publishProgress(msgRecieved);
@@ -444,6 +446,12 @@ public class SimpleDhtProvider extends ContentProvider {
 				  String target = "";
 				  isProcessComplete = false; 
 				  
+				  /* Check if the message packet is wildcard key based and reaches the initiator
+				   * In that case make that as Response so that initator will handle it.
+				   * */
+				  if(msgPacket.getMsgId().compareTo("*") == 0 && msgPacket.getMsgInitiator().compareTo(node.getDeviceID()) == 0)
+					  msgPacket.setMsgType(MSG_TYPE.RESPONSE);
+				  
 				  if(msgPacket.getMsgType() == MSG_TYPE.REQUEST)
 				  {
 					  					  
@@ -469,15 +477,32 @@ public class SimpleDhtProvider extends ContentProvider {
 									  contentValue.put("key", msgPacket.getMsgId());
 									  contentValue.put("value", msgPacket.getMsgContent());
 									  Uri newUri =  getContext().getContentResolver().insert(uri,contentValue);								
-									  responseMsgPacket.setMsgContent(newUri.toString());								
+									  responseMsgPacket.setMsgContent(newUri.toString());		
+									  // Send Response Message to initiator
+									  MessagePacket.sendMessage(target, responseMsgPacket);
 								  }
 								  else if(msgPacket.getMsgOperation() == MSG_OPER.QUERY)
 								  {
 									  Cursor resultCursor = getContext().getContentResolver().query(uri, null, 
 											  				(msgPacket.getMsgId().compareTo("*")==0)?"@":msgPacket.getMsgId(), null, null);
-									  responseMsgPacket.setMsgContent(MessagePacket.serializeCursor(resultCursor));
+									  //Log.i(TAG, "Query result AsyncTask: "+MessagePacket.serializeCursor(resultCursor));
 									  if(msgPacket.getMsgId().compareTo("*") == 0)
-										  MessagePacket.sendMessage(node.getNextDeviceID(), msgPacket);									  
+									  {
+										  String visitedDevices = msgPacket.getMsgContent();
+										  Log.i(TAG, "QUERY ALL : Previous Msg Content Async Task:"+msgPacket.getMsgContent());
+										  if(!visitedDevices.isEmpty())
+											  visitedDevices += MessagePacket.ROW_DELIMITER;
+										  visitedDevices += node.getDeviceID();
+										  msgPacket.setMsgContent(visitedDevices);
+										  Log.i(TAG, "QUERY ALL : Sending to next device Async Task:"+msgPacket.getMsgContent());
+										  MessagePacket.sendMessage(node.getNextDeviceID(), msgPacket);
+									  }
+									  //else
+									  //{
+										  responseMsgPacket.setMsgContent(MessagePacket.serializeCursor(resultCursor));
+										  // Send Response Message to initiator
+										  MessagePacket.sendMessage(target, responseMsgPacket);
+									  //}
 									  
 								  }
 								  else if(msgPacket.getMsgOperation() == MSG_OPER.DELETE)
@@ -487,8 +512,16 @@ public class SimpleDhtProvider extends ContentProvider {
 									  responseMsgPacket.setMsgContent(String.valueOf(noRowsDeleted));
 									  if(msgPacket.getMsgId().compareTo("*") == 0)
 									  {
-										  target = node.getNextDeviceID();								
-										  MessagePacket.sendMessage(target, msgPacket);
+										  String noOfPastDeletedRows = msgPacket.getMsgContent();
+										  if(!noOfPastDeletedRows.isEmpty())
+											  noRowsDeleted += Integer.parseInt(noOfPastDeletedRows);
+										  msgPacket.setMsgContent(String.valueOf(noRowsDeleted));
+										  MessagePacket.sendMessage(node.getNextDeviceID(), msgPacket);  		
+									  }
+									  else
+									  {
+										  // Send Response Message to initiator
+										  MessagePacket.sendMessage(target, responseMsgPacket);
 									  }
 
 								  }
@@ -497,10 +530,11 @@ public class SimpleDhtProvider extends ContentProvider {
 									  responseMsgPacket.setMsgContent(node.getDeviceID() + ":::" + node.getPrevDeviceID());
 									  node.setPrevDeviceID(msgPacket.getMsgId());
 									  node.setPrevNodeID(Node.genHash(msgPacket.getMsgId()));
+									  // Send Response Message to initiator
+									  MessagePacket.sendMessage(target, responseMsgPacket);
 								  }
 								 
-								  // Send Response Message to initiator
-								  MessagePacket.sendMessage(target, responseMsgPacket);
+								 
 								  
 							  }
 							  break;
@@ -535,36 +569,54 @@ public class SimpleDhtProvider extends ContentProvider {
 						  	}
 						  	case DELETE:
 						  	{
-						  		if(msgPacket.getMsgId().compareTo("*") == 0)
-						  		{
-						  			msgCount++;
-						  			resultDeletedRows += Integer.parseInt(msgPacket.getMsgContent());
-						  			if(msgCount == DeviceInfo.REMOTE_PORTS.length - 1)
-						  			{
-						  				msgCount = 0;
-							  			isProcessComplete = true;
-						  			}
-						  		}
-						  		else
-						  		{
+//						  		if(msgPacket.getMsgId().compareTo("*") == 0)
+//						  		{
+//						  			resultDeletedRows = Integer.parseInt(msgPacket.getMsgContent());
+//						  			isProcessComplete = true;
+//						  		}
+//						  		else
+//						  		{
 						  			resultDeletedRows = Integer.parseInt(msgPacket.getMsgContent());
 						  			isProcessComplete = true;
-						  		}							  			
+						  		//}							  			
 						  		break;
 						  	}
 						  	case QUERY:
 						  	{
 						  		if(msgPacket.getMsgId().compareTo("*") == 0)
 						  		{
-						  			msgCount++;
-						  			if(msgCount != 1)
-						  				resultCursorString += MessagePacket.ROW_DELIMITER;
-						  			resultCursorString += msgPacket.getMsgContent();
-						  			if(msgCount == 2)//DeviceInfo.REMOTE_PORTS.length - 1) TODO : change it back
+						  			if(msgPacket.getMsgInitiator().compareTo(node.getDeviceID())==0)
 						  			{
-						  				msgCount = 0;
-							  			isProcessComplete = true;
+						  				String[] devicesVisited = msgPacket.getMsgContent().split(MessagePacket.ROW_DELIMITER);
+						  				trackerLength = devicesVisited.length;
+						  				Log.i(TAG, "Message in tracker : "+msgPacket.getMsgContent());
+						  				Log.i(TAG, "Tracker Count : "+ trackerLength);
+						  				trackerArrived = true;
+						  				if(trackerLength - 1 == msgCount)
+						  				{
+						  					isProcessComplete = true;
+							  				msgCount = 0;
+							  				trackerArrived = false;
+						  				}
 						  			}
+						  			else
+						  			{
+						  				if(!resultCursorString.isEmpty())
+						  					resultCursorString += MessagePacket.ROW_DELIMITER;
+						  				resultCursorString += msgPacket.getMsgContent();
+						  				msgCount++;
+						  				Log.i(TAG, "Message in Query * : "+msgPacket.getMsgContent());
+						  				Log.i(TAG, "Message Count : "+msgCount);
+						  				Log.i(TAG, "Result Cursor Str : " + resultCursorString);
+						  				
+						  				if(trackerArrived && trackerLength -1 == msgCount)
+						  				{
+						  					isProcessComplete = true;
+							  				msgCount = 0;
+							  				trackerArrived = false;	
+						  				}
+						  			}
+						  			
 						  		}
 						  		else
 						  		{
@@ -606,28 +658,6 @@ public class SimpleDhtProvider extends ContentProvider {
 				  else
 				  {
 					  Log.e(TAG,"Invalid Message Type");
-				  }
-				  
-				  //TextView textView = (TextView) findViewById(R.id.textView1);
-				  //textView.append(msgPacket + "\t\n");          	          
-				  
-				  /*
-				   * The following code creates a file in the AVD's internal storage and stores a file.
-				   * 
-				   * For more information on file I/O on Android, please take a look at
-				   * http://developer.android.com/training/basics/data-storage/files.html
-				   */
-				  
-				  String filename = "SimpleDhtProvider";
-				  String string = MessagePacket.serializeMessage(msgPacket) + "\n";
-				  FileOutputStream outputStream;
-
-				  try {
-				      outputStream =  getContext().openFileOutput(filename, Context.MODE_PRIVATE);
-				      outputStream.write(string.getBytes());
-				      outputStream.close();
-				  } catch (Exception e) {
-				      Log.e(TAG, "File write failed");
 				  }
 				  
 				  

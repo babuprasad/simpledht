@@ -40,7 +40,8 @@ public class ClientTask extends AsyncTask<String, Void, Void> {
             out.write(msgToSend.getBytes());                
             out.flush();  
             out.close();
-            Log.d(TAG, "Message Sent - " + msgToSend); 
+            Log.d(TAG, "Message Sent - " + msgToSend);
+            //Log.d(TAG, "Size of Message Sent : "+msgToSend.length());
             socket.close();
             
         } catch (UnknownHostException e) {
